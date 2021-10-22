@@ -1,2 +1,2 @@
 # Loja
-Code first, EF core e .net5
+Code first, EF core, .net5 e testes unitários
