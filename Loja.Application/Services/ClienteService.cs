@@ -1,10 +1,10 @@
 ﻿using Loja.Application.Contract.Cliente;
+using Loja.Application.Contracts.Commom;
 using Loja.Application.Entities;
 using Loja.Application.Interfaces;
 using Loja.Application.Interfaces.Services;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Loja.Application.Services
@@ -12,28 +12,29 @@ namespace Loja.Application.Services
     public class ClienteService : IClienteService
     {
         private readonly IClienteRepository _repository;
-        public ClienteService(IClienteRepository repository)
+        private readonly ClienteValidatorRequest _validator;
+        public ClienteService(IClienteRepository repository,
+            ClienteValidatorRequest validator)
         {
             _repository = repository;
+            _validator = validator;
         }
 
-        public async Task<bool> AtualizarAsync(ClienteRequest request)
+        public async Task<ResponseModel<bool>> AtualizarAsync(ClienteRequest request)
         {
-            var validacao = new ClienteValidatorRequest().Validate(request);
-            if (!validacao.IsValid)
-            {
-                var erros = string.Join(" | ", validacao.Errors.Select(x => x.ErrorMessage));
-                throw new Exception(erros);
-            }
+            var validate = await _validator.ValidateAsync(request).ConfigureAwait(false);
+            if (!validate.IsValid)
+                return ResponseModel<bool>.Erro(validate);
 
             if ((await _repository.ObterAsync(request.Id ?? Guid.Empty).ConfigureAwait(false)) == null)
-                throw new Exception("Cliente não encontrado!");
-
-            if (await _repository.ValidarEmailExiste(request.Id ?? Guid.Empty, request.Email).ConfigureAwait(false))
-                throw new Exception("Email já cadastrado!");
+            {
+                var resposta = new ResponseModel<bool>();
+                resposta.AdicionarErro("Cliente não encontrado!");
+                return resposta;
+            }
 
             var entidade = ClienteRequest.Converter(request);
-            return await _repository.AtualizarAsync(entidade);
+            return ResponseModel<bool>.Sucesso(await _repository.AtualizarAsync(entidade));
         }
 
         public async Task<bool> DeletarAsync(Guid id)
@@ -45,28 +46,24 @@ namespace Loja.Application.Services
             return await _repository.DeletarAsync(entidade).ConfigureAwait(false);
         }
 
-        public async Task<Cliente> InserirAsync(ClienteRequest request)
+        public async Task<ResponseModel<Cliente>> InserirAsync(ClienteRequest request)
         {
-            var validacao = new ClienteValidatorRequest().Validate(request);
-            if (!validacao.IsValid)
-            {
-                var erros = string.Join(" | ", validacao.Errors.Select(x => x.ErrorMessage));
-                throw new Exception(erros);
-            }
-
-            if (await _repository.ValidarEmailExiste(Guid.Empty, request.Email).ConfigureAwait(false))
-                throw new Exception("Email já cadastrado!");
+            var validate = await _validator.ValidateAsync(request).ConfigureAwait(false);
+            if (!validate.IsValid)
+                return ResponseModel<Cliente>.Erro(validate);
 
             var entidade = ClienteRequest.Converter(request);
-            return await _repository.InserirAsync(entidade);
+            return ResponseModel<Cliente>.Sucesso(await _repository.InserirAsync(entidade));
         }
 
-        public async Task<IEnumerable<Cliente>> ListarAsync()
-            => await _repository.ListarAsync().ConfigureAwait(false);
+        public async Task<ResponseModel<IEnumerable<Cliente>>> ListarAsync()
+            => ResponseModel<IEnumerable<Cliente>>.Sucesso(await _repository.ListarAsync().ConfigureAwait(false));
 
 
-        public async Task<Cliente> ObterAsync(Guid id)
-            => await _repository.ObterAsync(id).ConfigureAwait(false);
+        public async Task<ResponseModel<Cliente>> ObterAsync(Guid id)
+            => ResponseModel<Cliente>.Sucesso(await _repository.ObterAsync(id).ConfigureAwait(false));
 
+        public async Task<bool> ValidarEmailExisteAsync(ClienteRequest request)
+            => await _repository.ValidarEmailExiste(request.Id ?? Guid.Empty, request.Email).ConfigureAwait(false);
     }
 }
