@@ -1,4 +1,5 @@
 ﻿using Loja.Application.Contract.Pedido;
+using Loja.Application.Contracts.Commom;
 using Loja.Application.Contracts.Pedido;
 using Loja.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -22,26 +23,40 @@ namespace Loja.Api.Controllers
         [HttpPost]
         [Route("")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(PedidoResponse))]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(ResponseModel<PedidoResponse>))]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(ResponseModel<object>))]
         public async Task<IActionResult> PostAsync([FromBody] PedidoRequest request)
-            => Ok(await _service.InserirAsync(request).ConfigureAwait(false));
+        {
+            var resposta = await _service.InserirAsync(request).ConfigureAwait(false);
+            if (resposta.IsValid)
+                return Ok(resposta);
+            else
+                return BadRequest(resposta);
+        }
 
         [HttpPut]
         [Route("")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(bool))]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(ResponseModel<bool>))]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest, Type = typeof(ResponseModel<bool>))]
         public async Task<IActionResult> PutAsync([FromBody] PedidoRequest request)
-            => Ok(await _service.AtualizarAsync(request).ConfigureAwait(false));
+        {
+            var resposta = await _service.AtualizarAsync(request).ConfigureAwait(false);
+            if (resposta.IsValid)
+                return Ok(resposta);
+            else
+                return BadRequest(resposta);
+        }
 
         [HttpGet]
         [Route("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(PedidoResponse))]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(ResponseModel<PedidoResponse>))]
         public async Task<IActionResult> GetAsync([FromRoute] Guid id)
             => Ok(await _service.ObterAsync(id).ConfigureAwait(false));
 
         [HttpGet]
         [Route("")]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(PedidoResponse))]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(ResponseModel<PedidoResponse>))]
         public async Task<IActionResult> GetAsync()
             => Ok(await _service.ListarAsync().ConfigureAwait(false));
 

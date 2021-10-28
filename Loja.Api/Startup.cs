@@ -1,4 +1,5 @@
 using Loja.Application.Context;
+using Loja.Application.Contracts.Ioc;
 using Loja.Application.Interfaces;
 using Loja.Application.Interfaces.Repositories;
 using Loja.Application.Interfaces.Services;
@@ -6,19 +7,11 @@ using Loja.Application.Repositories;
 using Loja.Application.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Loja.Api
 {
@@ -43,11 +36,10 @@ namespace Loja.Api
 
             services.AddDbContextFactory<LojaContext>(
                 options =>
-                options.UseSqlServer(@"COLOCAR SUA CONNECTION STRING"));
+                options.UseSqlServer(@"INPUT CONNECTION STRING"));
 
+            RegisterIocValidator(services);
             RegisterIoc(services);
-
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -74,15 +66,23 @@ namespace Loja.Api
 
         private void RegisterIoc(IServiceCollection services)
         {
-            services.TryAddSingleton<IClienteRepository, ClienteRepository>();
-            services.TryAddSingleton<IProdutoRepository, ProdutoRepository>();
-            services.TryAddSingleton<IPedidoRepository, PedidoRepository>();
+            services.AddSingleton<IClienteRepository, ClienteRepository>();
+            services.AddSingleton<IProdutoRepository, ProdutoRepository>();
+            services.AddSingleton<IPedidoRepository, PedidoRepository>();
 
 
-            services.TryAddSingleton<IClienteService, ClienteService>();
-            services.TryAddSingleton<IProdutoService, ProdutoService>();
-            services.TryAddSingleton<IPedidoService, PedidoService>();
+            services.AddSingleton<IClienteService, ClienteService>();
+            services.AddSingleton<IProdutoService, ProdutoService>();
+            services.AddSingleton<IPedidoService, PedidoService>();
 
+        }
+
+        private void RegisterIocValidator(IServiceCollection services)
+        {
+            foreach (var item in IocValidators.ObterSingleTypes())
+            {
+                services.AddSingleton(item, item);
+            }
         }
     }
 }
